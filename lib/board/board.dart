@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:testoth/board/board_info.dart';
+import 'package:testoth/player/player.dart';
 
 class Board extends StatefulWidget {
   const Board({Key? key, required this.title}) : super(key: key);
@@ -11,6 +12,9 @@ class Board extends StatefulWidget {
 }
 
 class _BoardState extends State<Board> {
+  BoardInfo boardInfo = BoardInfo.init();
+  bool isMovePlayer1 = false;
+
   @override
   void initState() {
     super.initState();
@@ -18,7 +22,8 @@ class _BoardState extends State<Board> {
 
   @override
   Widget build(BuildContext context) {
-    BoardInfo boardInfo = BoardInfo.init();
+    Player player1 = Player(boardInfo: boardInfo, blockStateKind: BlockStateKind.blackStone);
+    Player player2 = Player(boardInfo: boardInfo, blockStateKind: BlockStateKind.whiteStone);
 
     return Scaffold(
       appBar: AppBar(
@@ -27,19 +32,19 @@ class _BoardState extends State<Board> {
       ),
       body: Center(
         child: Row(
-          children: _buildBoardEntirety(boardInfo.boardState),
+          children: _buildBoardEntirety(player1, player2),
         ),
       ),
     );
   }
 
-  List<Column> _buildBoardEntirety(List<List<BlockStateKind>> boardState) {
+  List<Column> _buildBoardEntirety(Player player, Player player2) {
     List<Column> columnList = [];
 
-    for (int i = 0; i < boardState.length; i++) {
+    for (int i = 0; i < boardInfo.boardState.length; i++) {
       List<Widget> blockList = [];
-      for (int j = 0; j < boardState[i].length; j++) {
-        blockList.add(_buildUnitBlock(i, j, boardState[i][j]));
+      for (int j = 0; j < boardInfo.boardState[i].length; j++) {
+        blockList.add(_buildUnitBlock(i, j, boardInfo, player, player2));
       }
       Column unitColumn = Column(
         mainAxisSize: MainAxisSize.min,
@@ -51,13 +56,35 @@ class _BoardState extends State<Board> {
     return columnList;
   }
 
-  Widget _buildUnitBlock(int i, int j, BlockStateKind blockState) {
+  Widget _buildUnitBlock(int i, int j, BoardInfo boardInfo, Player player, Player player2) {
     return Opacity(
-      opacity: _decideOpacityValue(blockState),
+      opacity: _decideOpacityValue(boardInfo.boardState[i][j]),
       child: GestureDetector(
-        onTap: () {},
+        onTap: () {
+          if (boardInfo.boardState[i][j] == BlockStateKind.notExistStone) {
+            if (_canSetStone(i, j, boardInfo)) {
+              setState(() {
+                if (isMovePlayer1) {
+                  boardInfo.boardState = player.updateUnder(i, j);
+                  boardInfo.boardState = player.updateTop(i, j);
+                  boardInfo.boardState = player.updateLeft(i, j);
+                  boardInfo.boardState = player.updateRight(i, j);
+                  isMovePlayer1 = false;
+                } else {
+                  boardInfo.boardState = player2.updateUnder(i, j);
+                  boardInfo.boardState = player2.updateTop(i, j);
+                  boardInfo.boardState = player2.updateLeft(i, j);
+                  boardInfo.boardState = player2.updateRight(i, j);
+                  isMovePlayer1 = true;
+                }
+              });
+            }
+          } else {
+            return;
+          }
+        },
         child: Container(
-          child: blockState == BlockStateKind.notExistStone ? null : _buildUnitBlockWithStone(blockState),
+          child: boardInfo.boardState[i][j] == BlockStateKind.notExistStone ? null : _buildUnitBlockWithStone(boardInfo.boardState[i][j]),
           decoration: BoxDecoration(
             border: Border.all(color: Colors.black),
           ),
@@ -90,4 +117,17 @@ class _BoardState extends State<Board> {
         return 0.0;
     }
   }
+}
+
+bool _canSetStone(int i, int j, BoardInfo boardInfo) {
+  if ((boardInfo.boardState[i][j - 1] == BlockStateKind.blackStone) || (boardInfo.boardState[i][j - 1] == BlockStateKind.whiteStone)) return true;
+  if ((boardInfo.boardState[i][j + 1] == BlockStateKind.blackStone) || (boardInfo.boardState[i][j + 1] == BlockStateKind.whiteStone)) return true;
+  if ((boardInfo.boardState[i - 1][j] == BlockStateKind.blackStone) || (boardInfo.boardState[i - 1][j] == BlockStateKind.whiteStone)) return true;
+  if ((boardInfo.boardState[i + 1][j] == BlockStateKind.blackStone) || (boardInfo.boardState[i + 1][j] == BlockStateKind.whiteStone)) return true;
+  if ((boardInfo.boardState[i - 1][j - 1] == BlockStateKind.blackStone) || (boardInfo.boardState[i - 1][j - 1] == BlockStateKind.whiteStone)) return true;
+  if ((boardInfo.boardState[i - 1][j + 1] == BlockStateKind.blackStone) || (boardInfo.boardState[i - 1][j + 1] == BlockStateKind.whiteStone)) return true;
+  if ((boardInfo.boardState[i + 1][j - 1] == BlockStateKind.blackStone) || (boardInfo.boardState[i + 1][j - 1] == BlockStateKind.whiteStone)) return true;
+  if ((boardInfo.boardState[i + 1][j + 1] == BlockStateKind.blackStone) || (boardInfo.boardState[i + 1][j + 1] == BlockStateKind.whiteStone)) return true;
+
+  return false;
 }

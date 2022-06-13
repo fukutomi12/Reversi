@@ -145,5 +145,5 @@ class BoardInfo {
   // 初期状態
   BoardInfo.init() : boardState = initBoardState;
 
-  final List<List<BlockStateKind>> boardState;
+  List<List<BlockStateKind>> boardState;
 }
