@@ -6,5 +6,7 @@ abstract class PlayerBase {
   List<List<BlockStateKind>>? updateTop(int columnNumber, int rowNumber) {}
   List<List<BlockStateKind>>? updateLeft(int columnNumber, int rowNumber) {}
   List<List<BlockStateKind>>? updateRightUpper(int columnNumber, int rowNumber) {}
+  List<List<BlockStateKind>>? updateLeftLower(int columnNumber, int rowNumber) {}
+  List<List<BlockStateKind>>? updateLeftUpper(int columnNumber, int rowNumber) {}
   List<List<BlockStateKind>>? updateRightLower(int columnNumber, int rowNumber) {}
 }

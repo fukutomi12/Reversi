@@ -69,12 +69,20 @@ class _BoardState extends State<Board> {
                   boardInfo.boardState = player.updateTop(i, j);
                   boardInfo.boardState = player.updateLeft(i, j);
                   boardInfo.boardState = player.updateRight(i, j);
+                  boardInfo.boardState = player.updateRightUpper(i, j);
+                  boardInfo.boardState = player.updateLeftLower(i, j);
+                  boardInfo.boardState = player.updateLeftUpper(i, j);
+                  boardInfo.boardState = player.updateRightLower(i, j);
                   isMovePlayer1 = false;
                 } else {
                   boardInfo.boardState = player2.updateUnder(i, j);
                   boardInfo.boardState = player2.updateTop(i, j);
                   boardInfo.boardState = player2.updateLeft(i, j);
                   boardInfo.boardState = player2.updateRight(i, j);
+                  boardInfo.boardState = player2.updateRightUpper(i, j);
+                  boardInfo.boardState = player2.updateLeftLower(i, j);
+                  boardInfo.boardState = player2.updateLeftUpper(i, j);
+                  boardInfo.boardState = player2.updateRightLower(i, j);
                   isMovePlayer1 = true;
                 }
               });
