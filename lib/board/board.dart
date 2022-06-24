@@ -16,6 +16,14 @@ class _BoardState extends State<Board> {
   bool isMovePlayer1 = false;
   late List<List<int>> canSetCoordinate;
 
+  /// stateのフィールドであらかじめインスタンス化、キャッシュしておく
+  /// appBarのリビルドが解消＋Elementサブツリーもノーコストでそのまま再利用
+  /// constでも良い
+  final _appBar = AppBar(
+    centerTitle: true,
+    title: const Text('オセロ Demo'),
+  );
+
   @override
   void initState() {
     super.initState();
@@ -29,14 +37,39 @@ class _BoardState extends State<Board> {
     Player player2 = Player(boardInfo: boardInfo, blockStateKind: BlockStateKind.whiteStone);
 
     return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: Row(
-          children: _buildBoardEntirety(player1, player2),
-        ),
+      appBar: _appBar,
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+              canContinue(boardInfo)
+                  ? isMovePlayer1
+                      ? "黒の手番です"
+                      : "白の手番です"
+                  : judgeResult(boardInfo),
+              style: const TextStyle(fontSize: 19)),
+          Row(children: _buildBoardEntirety(player1, player2)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Column(
+                children: [
+                  const Text("黒", style: TextStyle(fontSize: 19)),
+                  SizedBox(child: _buildUnitBlockWithStone(BlockStateKind.blackStone), height: 40, width: 40),
+                  Text("${countStone(boardInfo, BlockStateKind.blackStone)}個", style: const TextStyle(fontSize: 18)),
+                ],
+              ),
+              const SizedBox(width: 50),
+              Column(
+                children: [
+                  const Text("白", style: TextStyle(fontSize: 19)),
+                  SizedBox(child: _buildUnitBlockWithStone(BlockStateKind.whiteStone), height: 40, width: 40),
+                  Text("${countStone(boardInfo, BlockStateKind.whiteStone)}個", style: const TextStyle(fontSize: 18)),
+                ],
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -62,46 +95,13 @@ class _BoardState extends State<Board> {
   Widget _buildUnitBlock(int i, int j, BoardInfo boardInfo, Player player, Player player2) {
     return Opacity(
       opacity: _decideOpacityValue(boardInfo.boardState[i][j]),
-      child: GestureDetector(
-        onTap: () {
-          if (boardInfo.boardState[i][j] == BlockStateKind.notExistStone) {
-            if (_canSetStone(i, j, boardInfo)) {
-              setState(() {
-                if (isMovePlayer1) {
-                  boardInfo.boardState = player.updateUnder(i, j);
-                  boardInfo.boardState = player.updateTop(i, j);
-                  boardInfo.boardState = player.updateLeft(i, j);
-                  boardInfo.boardState = player.updateRight(i, j);
-                  boardInfo.boardState = player.updateRightUpper(i, j);
-                  boardInfo.boardState = player.updateLeftLower(i, j);
-                  boardInfo.boardState = player.updateLeftUpper(i, j);
-                  boardInfo.boardState = player.updateRightLower(i, j);
-                  isMovePlayer1 = false;
-                } else {
-                  boardInfo.boardState = player2.updateUnder(i, j);
-                  boardInfo.boardState = player2.updateTop(i, j);
-                  boardInfo.boardState = player2.updateLeft(i, j);
-                  boardInfo.boardState = player2.updateRight(i, j);
-                  boardInfo.boardState = player2.updateRightUpper(i, j);
-                  boardInfo.boardState = player2.updateLeftLower(i, j);
-                  boardInfo.boardState = player2.updateLeftUpper(i, j);
-                  boardInfo.boardState = player2.updateRightLower(i, j);
-                  isMovePlayer1 = true;
-                }
-              });
-            }
-          } else {
-            return;
-          }
-        },
-        child: Container(
-          child: _builCanSetUnitBlock(i, j),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.black),
-          ),
-          height: 39,
-          width: 39,
+      child: Container(
+        child: _builCanSetUnitBlock(i, j, player, player2),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.black),
         ),
+        height: 39,
+        width: 39,
       ),
     );
   }
@@ -117,23 +117,73 @@ class _BoardState extends State<Board> {
     );
   }
 
-  Widget? _builCanSetUnitBlock(int columnNumber, int rowNumber) {
+  Widget? _builCanSetUnitBlock(int columnNumber, int rowNumber, Player player, Player player2) {
     for (var e in canSetCoordinate) {
-      if (columnNumber == e[0] && rowNumber == e[1]) return _buildUnitBlocCanSet();
+      if (columnNumber == e[0] && rowNumber == e[1]) return _buildUnitBlocCanSet(columnNumber, rowNumber, player, player2);
     }
-
     if (boardInfo.boardState[columnNumber][rowNumber] != BlockStateKind.notExistStone) {
       return _buildUnitBlockWithStone(boardInfo.boardState[columnNumber][rowNumber]);
     }
     return null;
   }
 
-  Widget _buildUnitBlocCanSet() {
-    return Container(
-      margin: const EdgeInsets.all(2.0),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.amber),
-        borderRadius: BorderRadius.circular(40.0),
+  Widget _buildUnitBlocCanSet(int i, int j, Player player, Player player2) {
+    List<List<int>> list;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          if (isMovePlayer1) {
+            boardInfo.boardState = player.updateUnder(i, j);
+            boardInfo.boardState = player.updateTop(i, j);
+            boardInfo.boardState = player.updateLeft(i, j);
+            boardInfo.boardState = player.updateRight(i, j);
+            boardInfo.boardState = player.updateRightUpper(i, j);
+            boardInfo.boardState = player.updateLeftLower(i, j);
+            boardInfo.boardState = player.updateLeftUpper(i, j);
+            boardInfo.boardState = player.updateRightLower(i, j);
+            list = _searchCoordinatesFromUpdatableCorrdinate(
+                _collectCorrdinateCanSetStone(_collectCorrdinatePlacedStoneFromBoard(boardInfo), boardInfo), boardInfo, BlockStateKind.whiteStone);
+            if (list.isEmpty) {
+              canSetCoordinate = _searchCoordinatesFromUpdatableCorrdinate(
+                  _collectCorrdinateCanSetStone(_collectCorrdinatePlacedStoneFromBoard(boardInfo), boardInfo), boardInfo, BlockStateKind.blackStone);
+            } else {
+              canSetCoordinate = list;
+              isMovePlayer1 = false;
+            }
+            // canSetCoordinate = _searchCoordinatesFromUpdatableCorrdinate(
+            //     _collectCorrdinateCanSetStone(_collectCorrdinatePlacedStoneFromBoard(boardInfo), boardInfo), boardInfo, BlockStateKind.whiteStone);
+            // isMovePlayer1 = false;
+          } else {
+            boardInfo.boardState = player2.updateUnder(i, j);
+            boardInfo.boardState = player2.updateTop(i, j);
+            boardInfo.boardState = player2.updateLeft(i, j);
+            boardInfo.boardState = player2.updateRight(i, j);
+            boardInfo.boardState = player2.updateRightUpper(i, j);
+            boardInfo.boardState = player2.updateLeftLower(i, j);
+            boardInfo.boardState = player2.updateLeftUpper(i, j);
+            boardInfo.boardState = player2.updateRightLower(i, j);
+            list = _searchCoordinatesFromUpdatableCorrdinate(
+                _collectCorrdinateCanSetStone(_collectCorrdinatePlacedStoneFromBoard(boardInfo), boardInfo), boardInfo, BlockStateKind.blackStone);
+            if (list.isEmpty) {
+              canSetCoordinate = _searchCoordinatesFromUpdatableCorrdinate(
+                  _collectCorrdinateCanSetStone(_collectCorrdinatePlacedStoneFromBoard(boardInfo), boardInfo), boardInfo, BlockStateKind.whiteStone);
+            } else {
+              canSetCoordinate = list;
+              isMovePlayer1 = true;
+            }
+
+            // canSetCoordinate = _searchCoordinatesFromUpdatableCorrdinate(
+            //     _collectCorrdinateCanSetStone(_collectCorrdinatePlacedStoneFromBoard(boardInfo), boardInfo), boardInfo, BlockStateKind.blackStone);
+            // isMovePlayer1 = true;
+          }
+        });
+      },
+      child: Container(
+        margin: const EdgeInsets.all(2.0),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.amber),
+          borderRadius: BorderRadius.circular(40.0),
+        ),
       ),
     );
   }
@@ -148,19 +198,6 @@ class _BoardState extends State<Board> {
         return 0.0;
     }
   }
-}
-
-bool _canSetStone(int i, int j, BoardInfo boardInfo) {
-  if ((boardInfo.boardState[i][j - 1] == BlockStateKind.blackStone) || (boardInfo.boardState[i][j - 1] == BlockStateKind.whiteStone)) return true;
-  if ((boardInfo.boardState[i][j + 1] == BlockStateKind.blackStone) || (boardInfo.boardState[i][j + 1] == BlockStateKind.whiteStone)) return true;
-  if ((boardInfo.boardState[i - 1][j] == BlockStateKind.blackStone) || (boardInfo.boardState[i - 1][j] == BlockStateKind.whiteStone)) return true;
-  if ((boardInfo.boardState[i + 1][j] == BlockStateKind.blackStone) || (boardInfo.boardState[i + 1][j] == BlockStateKind.whiteStone)) return true;
-  if ((boardInfo.boardState[i - 1][j - 1] == BlockStateKind.blackStone) || (boardInfo.boardState[i - 1][j - 1] == BlockStateKind.whiteStone)) return true;
-  if ((boardInfo.boardState[i - 1][j + 1] == BlockStateKind.blackStone) || (boardInfo.boardState[i - 1][j + 1] == BlockStateKind.whiteStone)) return true;
-  if ((boardInfo.boardState[i + 1][j - 1] == BlockStateKind.blackStone) || (boardInfo.boardState[i + 1][j - 1] == BlockStateKind.whiteStone)) return true;
-  if ((boardInfo.boardState[i + 1][j + 1] == BlockStateKind.blackStone) || (boardInfo.boardState[i + 1][j + 1] == BlockStateKind.whiteStone)) return true;
-
-  return false;
 }
 
 ///
@@ -214,8 +251,6 @@ List<List<int>> _searchCoordinatesFromUpdatableCorrdinate(List<List<int>> list, 
     default:
       break;
   }
-
-  // print(result);
 
   return result;
 }
@@ -288,5 +323,39 @@ List<List<int>> _collectUpdatableCoordinate(List<List<int>> list, BlockStateKind
     canSetStone = false;
   }
 
+  return result;
+}
+
+int countStone(BoardInfo boardInfo, BlockStateKind kind) {
+  var result = 0;
+  for (var temp1 in boardInfo.boardState) {
+    for (var temp2 in temp1) {
+      if (temp2 == kind) ++result;
+    }
+  }
+
+  return result;
+}
+
+bool canContinue(BoardInfo boardInfo) {
+  var result = false;
+  for (var temp1 in boardInfo.boardState) {
+    if (temp1.contains(BlockStateKind.notExistStone)) result = true;
+  }
+  return result;
+}
+
+String judgeResult(BoardInfo boardInfo) {
+  var result = "";
+  var countBlackResult = countStone(boardInfo, BlockStateKind.blackStone);
+  var countWhiteResult = countStone(boardInfo, BlockStateKind.whiteStone);
+
+  if (countBlackResult > countWhiteResult) {
+    result = "黒の勝ちです";
+  } else if (countBlackResult < countWhiteResult) {
+    result = "白の勝ちです";
+  } else {
+    result = "同点です";
+  }
   return result;
 }
