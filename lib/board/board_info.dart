@@ -135,15 +135,176 @@ List<List<BlockStateKind>> initBoardState = [
   ]
 ];
 
-/// 将来的にローカルに保存した盤面情報をコンストラクタで指定して
-/// 途中からでも遊べるようにする
-///
-class BoardInfo {
+class BoardManager {
   // ロールからの情報取得用
-  BoardInfo({required this.boardState});
-
+  BoardManager({required this.boardState});
   // 初期状態
-  BoardInfo.init() : boardState = initBoardState;
+  BoardManager.init() : boardState = initBoardState;
 
   List<List<BlockStateKind>> boardState;
+
+  List<List<BlockStateKind>> updateUnder(int columnNumber, int rowNumber, BlockStateKind blockStateKind) {
+    var result = boardState;
+    result[columnNumber][rowNumber] = blockStateKind;
+
+    for (var i = rowNumber + 1; i <= 8; i++) {
+      // 更新方向。真下が同色ならすぐに抜けて、更新方向に抜けがある場合も更新せずに抜ける。
+      if (boardState[columnNumber][i] == BlockStateKind.notExistStone || boardState[columnNumber][rowNumber + 1] == blockStateKind) break;
+      if (result[columnNumber][i] == blockStateKind) {
+        for (var j = rowNumber + 1; j < i; j++) {
+          result[columnNumber][j] = blockStateKind;
+        }
+      }
+    }
+    return result;
+  }
+
+  List<List<BlockStateKind>> updateTop(int columnNumber, int rowNumber, BlockStateKind blockStateKind) {
+    var result = boardState;
+    result[columnNumber][rowNumber] = blockStateKind;
+
+    for (var i = rowNumber - 1; i >= 1; i--) {
+      if (boardState[columnNumber][i] == BlockStateKind.notExistStone || boardState[columnNumber][rowNumber - 1] == blockStateKind) break;
+      if (result[columnNumber][i] == blockStateKind) {
+        for (var j = rowNumber - 1; j > i; j--) {
+          result[columnNumber][j] = blockStateKind;
+        }
+      }
+    }
+    return result;
+  }
+
+  List<List<BlockStateKind>> updateLeft(int columnNumber, int rowNumber, BlockStateKind blockStateKind) {
+    var result = boardState;
+    result[columnNumber][rowNumber] = blockStateKind;
+
+    for (var i = columnNumber - 1; i >= 1; i--) {
+      if (boardState[i][rowNumber] == BlockStateKind.notExistStone || boardState[columnNumber - 1][rowNumber] == blockStateKind) break;
+      if (result[i][rowNumber] == blockStateKind) {
+        for (var j = columnNumber - 1; j > i; j--) {
+          result[j][rowNumber] = blockStateKind;
+        }
+      }
+    }
+    return result;
+  }
+
+  List<List<BlockStateKind>> updateRight(int columnNumber, int rowNumber, BlockStateKind blockStateKind) {
+    var result = boardState;
+    result[columnNumber][rowNumber] = blockStateKind;
+
+    for (var i = columnNumber + 1; i <= 8; i++) {
+      if (boardState[i][rowNumber] == BlockStateKind.notExistStone || boardState[columnNumber + 1][rowNumber] == blockStateKind) break;
+      if (result[i][rowNumber] == blockStateKind) {
+        for (var j = columnNumber + 1; j < i; j++) {
+          result[j][rowNumber] = blockStateKind;
+        }
+      }
+    }
+    return result;
+  }
+
+  List<List<BlockStateKind>> updateRightUpper(int columnNumber, int rowNumber, BlockStateKind blockStateKind) {
+    var result = boardState;
+    result[columnNumber][rowNumber] = blockStateKind;
+    List<List<int>> list = [];
+    var count = 1;
+    for (var i = columnNumber + 1; i <= 8; i++) {
+      if (boardState[i][rowNumber - count] == BlockStateKind.notExistStone || boardState[i][rowNumber - count] == BlockStateKind.notExistSpace) break;
+
+      if (boardState[i][rowNumber - count] == blockStateKind) {
+        var count2 = 1;
+        for (var j = columnNumber + 1; j < i; j++) {
+          list.add([j, rowNumber - count2]);
+          ++count2;
+        }
+        break;
+      }
+      ++count;
+    }
+
+    for (var e in list) {
+      result[e[0]][e[1]] = blockStateKind;
+    }
+
+    return result;
+  }
+
+  List<List<BlockStateKind>> updateLeftLower(int columnNumber, int rowNumber, BlockStateKind blockStateKind) {
+    var result = boardState;
+    result[columnNumber][rowNumber] = blockStateKind;
+    List<List<int>> list = [];
+    var count = 1;
+    for (var i = columnNumber - 1; i >= 1; i--) {
+      if (boardState[i][rowNumber + count] == BlockStateKind.notExistStone || boardState[i][rowNumber + count] == BlockStateKind.notExistSpace) break;
+
+      if (boardState[i][rowNumber + count] == blockStateKind) {
+        var count2 = 1;
+        for (var j = columnNumber - 1; j > i; j--) {
+          list.add([j, rowNumber + count2]);
+          ++count2;
+        }
+        break;
+      }
+
+      ++count;
+    }
+    for (var e in list) {
+      result[e[0]][e[1]] = blockStateKind;
+    }
+
+    return result;
+  }
+
+  List<List<BlockStateKind>> updateLeftUpper(int columnNumber, int rowNumber, BlockStateKind blockStateKind) {
+    var result = boardState;
+    result[columnNumber][rowNumber] = blockStateKind;
+    List<List<int>> list = [];
+    var count = 1;
+    for (var i = columnNumber - 1; i >= 1; i--) {
+      if (boardState[i][rowNumber - count] == BlockStateKind.notExistStone || boardState[i][rowNumber - count] == BlockStateKind.notExistSpace) break;
+
+      if (boardState[i][rowNumber - count] == blockStateKind) {
+        var count2 = 1;
+        for (var j = columnNumber - 1; j > i; j--) {
+          list.add([j, rowNumber - count2]);
+          ++count2;
+        }
+        break;
+      }
+
+      ++count;
+    }
+    for (var e in list) {
+      result[e[0]][e[1]] = blockStateKind;
+    }
+
+    return result;
+  }
+
+  List<List<BlockStateKind>> updateRightLower(int columnNumber, int rowNumber, BlockStateKind blockStateKind) {
+    var result = boardState;
+    result[columnNumber][rowNumber] = blockStateKind;
+    List<List<int>> list = [];
+    var count = 1;
+    for (var i = columnNumber + 1; i <= 8; i++) {
+      if (boardState[i][rowNumber + count] == BlockStateKind.notExistStone || boardState[i][rowNumber + count] == BlockStateKind.notExistSpace) break;
+      if (boardState[i][rowNumber + count] == blockStateKind) {
+        var count2 = 1;
+        for (var j = columnNumber + 1; j < i; j++) {
+          list.add([j, rowNumber + count2]);
+          ++count2;
+        }
+        break;
+      }
+
+      ++count;
+    }
+
+    for (var e in list) {
+      result[e[0]][e[1]] = blockStateKind;
+    }
+
+    return result;
+  }
 }

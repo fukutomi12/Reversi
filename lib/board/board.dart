@@ -1,54 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:testoth/board/board_info.dart';
-import 'package:testoth/player/player.dart';
+
+///
+/// boardの更新自体はboardに持たせる
+/// ゲーム状況の管理はゲームオブジェクトを用意する？(ゲーム続行可能かを判定する関数など)
+///
 
 class Board extends StatefulWidget {
-  const Board({Key? key, required this.title}) : super(key: key);
-
-  final String title;
+  const Board({Key? key}) : super(key: key);
 
   @override
   State<Board> createState() => _BoardState();
 }
 
 class _BoardState extends State<Board> {
-  BoardInfo boardInfo = BoardInfo.init();
-  bool isMovePlayer1 = false;
-  late List<List<int>> canSetCoordinate;
-
-  /// stateのフィールドであらかじめインスタンス化、キャッシュしておく
-  /// appBarのリビルドが解消＋Elementサブツリーもノーコストでそのまま再利用
-  /// constでも良い
-  final _appBar = AppBar(
-    centerTitle: true,
-    title: const Text('オセロ Demo'),
-  );
+  BoardManager boardInfo = BoardManager.init();
+  bool isWhite = false;
+  late List<List<int>> canSetCoordinateList;
 
   @override
   void initState() {
     super.initState();
-    canSetCoordinate = _searchCoordinatesFromUpdatableCorrdinate(
+    canSetCoordinateList = _searchCoordinatesFromUpdatableCorrdinate(
         _collectCorrdinateCanSetStone(_collectCorrdinatePlacedStoneFromBoard(boardInfo), boardInfo), boardInfo, BlockStateKind.whiteStone);
   }
 
   @override
   Widget build(BuildContext context) {
-    Player player1 = Player(boardInfo: boardInfo, blockStateKind: BlockStateKind.blackStone);
-    Player player2 = Player(boardInfo: boardInfo, blockStateKind: BlockStateKind.whiteStone);
-
     return Scaffold(
-      appBar: _appBar,
+      appBar: AppBar(
+        centerTitle: true,
+        title: const Text('オセロ Demo'),
+      ),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
               canContinue(boardInfo)
-                  ? isMovePlayer1
+                  ? isWhite
                       ? "黒の手番です"
                       : "白の手番です"
                   : judgeResult(boardInfo),
               style: const TextStyle(fontSize: 19)),
-          Row(children: _buildBoardEntirety(player1, player2)),
+          Row(children: _buildBoardEntirety()),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -74,13 +68,13 @@ class _BoardState extends State<Board> {
     );
   }
 
-  List<Column> _buildBoardEntirety(Player player, Player player2) {
+  List<Column> _buildBoardEntirety() {
     List<Column> columnList = [];
 
     for (int i = 0; i < boardInfo.boardState.length; i++) {
       List<Widget> blockList = [];
       for (int j = 0; j < boardInfo.boardState[i].length; j++) {
-        blockList.add(_buildUnitBlock(i, j, boardInfo, player, player2));
+        blockList.add(_buildBlock(i, j, boardInfo));
       }
       Column unitColumn = Column(
         mainAxisSize: MainAxisSize.min,
@@ -92,11 +86,11 @@ class _BoardState extends State<Board> {
     return columnList;
   }
 
-  Widget _buildUnitBlock(int i, int j, BoardInfo boardInfo, Player player, Player player2) {
+  Widget _buildBlock(int i, int j, BoardManager boardInfo) {
     return Opacity(
       opacity: _decideOpacityValue(boardInfo.boardState[i][j]),
       child: Container(
-        child: _builCanSetUnitBlock(i, j, player, player2),
+        child: _builUnitBlock(i, j),
         decoration: BoxDecoration(
           border: Border.all(color: Colors.black),
         ),
@@ -117,9 +111,9 @@ class _BoardState extends State<Board> {
     );
   }
 
-  Widget? _builCanSetUnitBlock(int columnNumber, int rowNumber, Player player, Player player2) {
-    for (var e in canSetCoordinate) {
-      if (columnNumber == e[0] && rowNumber == e[1]) return _buildUnitBlocCanSet(columnNumber, rowNumber, player, player2);
+  Widget? _builUnitBlock(int columnNumber, int rowNumber) {
+    for (var e in canSetCoordinateList) {
+      if (columnNumber == e[0] && rowNumber == e[1]) return _buildUpdatableUnitBlock(columnNumber, rowNumber);
     }
     if (boardInfo.boardState[columnNumber][rowNumber] != BlockStateKind.notExistStone) {
       return _buildUnitBlockWithStone(boardInfo.boardState[columnNumber][rowNumber]);
@@ -127,54 +121,47 @@ class _BoardState extends State<Board> {
     return null;
   }
 
-  Widget _buildUnitBlocCanSet(int i, int j, Player player, Player player2) {
-    List<List<int>> list;
+  Widget _buildUpdatableUnitBlock(int i, int j) {
+    List<List<int>> updatableCordinates;
     return GestureDetector(
       onTap: () {
         setState(() {
-          if (isMovePlayer1) {
-            boardInfo.boardState = player.updateUnder(i, j);
-            boardInfo.boardState = player.updateTop(i, j);
-            boardInfo.boardState = player.updateLeft(i, j);
-            boardInfo.boardState = player.updateRight(i, j);
-            boardInfo.boardState = player.updateRightUpper(i, j);
-            boardInfo.boardState = player.updateLeftLower(i, j);
-            boardInfo.boardState = player.updateLeftUpper(i, j);
-            boardInfo.boardState = player.updateRightLower(i, j);
-            list = _searchCoordinatesFromUpdatableCorrdinate(
+          if (isWhite) {
+            boardInfo.boardState = boardInfo.updateUnder(i, j, BlockStateKind.blackStone);
+            boardInfo.boardState = boardInfo.updateTop(i, j, BlockStateKind.blackStone);
+            boardInfo.boardState = boardInfo.updateLeft(i, j, BlockStateKind.blackStone);
+            boardInfo.boardState = boardInfo.updateRight(i, j, BlockStateKind.blackStone);
+            boardInfo.boardState = boardInfo.updateRightUpper(i, j, BlockStateKind.blackStone);
+            boardInfo.boardState = boardInfo.updateLeftLower(i, j, BlockStateKind.blackStone);
+            boardInfo.boardState = boardInfo.updateLeftUpper(i, j, BlockStateKind.blackStone);
+            boardInfo.boardState = boardInfo.updateRightLower(i, j, BlockStateKind.blackStone);
+            updatableCordinates = _searchCoordinatesFromUpdatableCorrdinate(
                 _collectCorrdinateCanSetStone(_collectCorrdinatePlacedStoneFromBoard(boardInfo), boardInfo), boardInfo, BlockStateKind.whiteStone);
-            if (list.isEmpty) {
-              canSetCoordinate = _searchCoordinatesFromUpdatableCorrdinate(
+            if (updatableCordinates.isEmpty) {
+              canSetCoordinateList = _searchCoordinatesFromUpdatableCorrdinate(
                   _collectCorrdinateCanSetStone(_collectCorrdinatePlacedStoneFromBoard(boardInfo), boardInfo), boardInfo, BlockStateKind.blackStone);
             } else {
-              canSetCoordinate = list;
-              isMovePlayer1 = false;
+              canSetCoordinateList = updatableCordinates;
+              isWhite = false;
             }
-            // canSetCoordinate = _searchCoordinatesFromUpdatableCorrdinate(
-            //     _collectCorrdinateCanSetStone(_collectCorrdinatePlacedStoneFromBoard(boardInfo), boardInfo), boardInfo, BlockStateKind.whiteStone);
-            // isMovePlayer1 = false;
           } else {
-            boardInfo.boardState = player2.updateUnder(i, j);
-            boardInfo.boardState = player2.updateTop(i, j);
-            boardInfo.boardState = player2.updateLeft(i, j);
-            boardInfo.boardState = player2.updateRight(i, j);
-            boardInfo.boardState = player2.updateRightUpper(i, j);
-            boardInfo.boardState = player2.updateLeftLower(i, j);
-            boardInfo.boardState = player2.updateLeftUpper(i, j);
-            boardInfo.boardState = player2.updateRightLower(i, j);
-            list = _searchCoordinatesFromUpdatableCorrdinate(
+            boardInfo.boardState = boardInfo.updateUnder(i, j, BlockStateKind.whiteStone);
+            boardInfo.boardState = boardInfo.updateTop(i, j, BlockStateKind.whiteStone);
+            boardInfo.boardState = boardInfo.updateLeft(i, j, BlockStateKind.whiteStone);
+            boardInfo.boardState = boardInfo.updateRight(i, j, BlockStateKind.whiteStone);
+            boardInfo.boardState = boardInfo.updateRightUpper(i, j, BlockStateKind.whiteStone);
+            boardInfo.boardState = boardInfo.updateLeftLower(i, j, BlockStateKind.whiteStone);
+            boardInfo.boardState = boardInfo.updateLeftUpper(i, j, BlockStateKind.whiteStone);
+            boardInfo.boardState = boardInfo.updateRightLower(i, j, BlockStateKind.whiteStone);
+            updatableCordinates = _searchCoordinatesFromUpdatableCorrdinate(
                 _collectCorrdinateCanSetStone(_collectCorrdinatePlacedStoneFromBoard(boardInfo), boardInfo), boardInfo, BlockStateKind.blackStone);
-            if (list.isEmpty) {
-              canSetCoordinate = _searchCoordinatesFromUpdatableCorrdinate(
+            if (updatableCordinates.isEmpty) {
+              canSetCoordinateList = _searchCoordinatesFromUpdatableCorrdinate(
                   _collectCorrdinateCanSetStone(_collectCorrdinatePlacedStoneFromBoard(boardInfo), boardInfo), boardInfo, BlockStateKind.whiteStone);
             } else {
-              canSetCoordinate = list;
-              isMovePlayer1 = true;
+              canSetCoordinateList = updatableCordinates;
+              isWhite = true;
             }
-
-            // canSetCoordinate = _searchCoordinatesFromUpdatableCorrdinate(
-            //     _collectCorrdinateCanSetStone(_collectCorrdinatePlacedStoneFromBoard(boardInfo), boardInfo), boardInfo, BlockStateKind.blackStone);
-            // isMovePlayer1 = true;
           }
         });
       },
@@ -204,7 +191,7 @@ class _BoardState extends State<Board> {
 ///ここから下がまだ試作段階
 ///
 ///
-List<List<int>> _collectCorrdinatePlacedStoneFromBoard(BoardInfo boardInfo) {
+List<List<int>> _collectCorrdinatePlacedStoneFromBoard(BoardManager boardInfo) {
   /// i = column j = row
   List<List<int>> result = [];
 
@@ -218,7 +205,7 @@ List<List<int>> _collectCorrdinatePlacedStoneFromBoard(BoardInfo boardInfo) {
 }
 
 //石が存在する座標から石を置ける座標を判定する
-List<List<int>> _collectCorrdinateCanSetStone(List<List<int>> list, BoardInfo boardInfo) {
+List<List<int>> _collectCorrdinateCanSetStone(List<List<int>> list, BoardManager boardInfo) {
   /// i = column j = row
   /// ８方向 上(0,-1) 右上(1)
   List<List<int>> result = [];
@@ -238,7 +225,7 @@ List<List<int>> _collectCorrdinateCanSetStone(List<List<int>> list, BoardInfo bo
 }
 
 //石を置ける場所から更新できる座標だけを返す
-List<List<int>> _searchCoordinatesFromUpdatableCorrdinate(List<List<int>> list, BoardInfo boardInfo, BlockStateKind kind) {
+List<List<int>> _searchCoordinatesFromUpdatableCorrdinate(List<List<int>> list, BoardManager boardInfo, BlockStateKind kind) {
   List<List<int>> result = [];
 
   switch (kind) {
@@ -256,7 +243,7 @@ List<List<int>> _searchCoordinatesFromUpdatableCorrdinate(List<List<int>> list, 
 }
 
 //更新できる座標を判定して集める(更新処理は行っていない)
-List<List<int>> _collectUpdatableCoordinate(List<List<int>> list, BlockStateKind kind, BoardInfo boardInfo) {
+List<List<int>> _collectUpdatableCoordinate(List<List<int>> list, BlockStateKind kind, BoardManager boardInfo) {
   List<List<int>> result = [];
   bool canSetStone = false;
 
@@ -326,7 +313,7 @@ List<List<int>> _collectUpdatableCoordinate(List<List<int>> list, BlockStateKind
   return result;
 }
 
-int countStone(BoardInfo boardInfo, BlockStateKind kind) {
+int countStone(BoardManager boardInfo, BlockStateKind kind) {
   var result = 0;
   for (var temp1 in boardInfo.boardState) {
     for (var temp2 in temp1) {
@@ -337,7 +324,7 @@ int countStone(BoardInfo boardInfo, BlockStateKind kind) {
   return result;
 }
 
-bool canContinue(BoardInfo boardInfo) {
+bool canContinue(BoardManager boardInfo) {
   var result = false;
   for (var temp1 in boardInfo.boardState) {
     if (temp1.contains(BlockStateKind.notExistStone)) result = true;
@@ -345,7 +332,7 @@ bool canContinue(BoardInfo boardInfo) {
   return result;
 }
 
-String judgeResult(BoardInfo boardInfo) {
+String judgeResult(BoardManager boardInfo) {
   var result = "";
   var countBlackResult = countStone(boardInfo, BlockStateKind.blackStone);
   var countWhiteResult = countStone(boardInfo, BlockStateKind.whiteStone);
