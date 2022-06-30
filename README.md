@@ -1,6 +1,6 @@
 
 ## othello_test
-Flutterを使用したオセロアプリです
+Flutterを使用したオセロアプリです  
 Flutterを触り初めた方にもすぐ理解できるように基本的なWidgetと状態管理方法を採用しています
 
 ## 動作環境
