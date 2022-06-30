@@ -12,19 +12,21 @@ enum BlockStateKind {
   whiteStone,
 }
 
+const notExitstSpaceList = [
+  BlockStateKind.notExistSpace,
+  BlockStateKind.notExistSpace,
+  BlockStateKind.notExistSpace,
+  BlockStateKind.notExistSpace,
+  BlockStateKind.notExistSpace,
+  BlockStateKind.notExistSpace,
+  BlockStateKind.notExistSpace,
+  BlockStateKind.notExistSpace,
+  BlockStateKind.notExistSpace,
+  BlockStateKind.notExistSpace
+];
+
 List<List<BlockStateKind>> initBoardState = [
-  [
-    BlockStateKind.notExistSpace,
-    BlockStateKind.notExistSpace,
-    BlockStateKind.notExistSpace,
-    BlockStateKind.notExistSpace,
-    BlockStateKind.notExistSpace,
-    BlockStateKind.notExistSpace,
-    BlockStateKind.notExistSpace,
-    BlockStateKind.notExistSpace,
-    BlockStateKind.notExistSpace,
-    BlockStateKind.notExistSpace
-  ],
+  notExitstSpaceList,
   [
     BlockStateKind.notExistSpace,
     BlockStateKind.notExistStone,
@@ -121,18 +123,7 @@ List<List<BlockStateKind>> initBoardState = [
     BlockStateKind.notExistStone,
     BlockStateKind.notExistSpace
   ],
-  [
-    BlockStateKind.notExistSpace,
-    BlockStateKind.notExistSpace,
-    BlockStateKind.notExistSpace,
-    BlockStateKind.notExistSpace,
-    BlockStateKind.notExistSpace,
-    BlockStateKind.notExistSpace,
-    BlockStateKind.notExistSpace,
-    BlockStateKind.notExistSpace,
-    BlockStateKind.notExistSpace,
-    BlockStateKind.notExistSpace
-  ]
+  notExitstSpaceList
 ];
 
 class BoardUpdate {
